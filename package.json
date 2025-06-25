@@ -1,0 +1,37 @@
+{
+  "name": "api_backend",
+  "version": "1.0.0",
+  "description": "API REST para app de aprendizaje",
+  "main": "index.js",
+  "type": "module",
+
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+
+  "keywords": ["api", "express", "postgresql", "cloudinary", "backend"],
+  "author": "Luis Osorio",
+  "license": "MIT",
+
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^1.30.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.1",
+    "multer-storage-cloudinary": "^4.0.0",
+    "pg": "^8.16.0"
+  },
+
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  },
+  
+  "engines": {
+    "node": ">=18.x"
+  }
+}
+
