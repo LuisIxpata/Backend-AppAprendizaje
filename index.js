@@ -20,7 +20,7 @@ import subirImagenRoutes     from './Routes/subir_imagen.js';
 const app = express();
 
 app.get('/', (_, res) => {
-  res.send('Backend AppAprendizaje operativo 🚀');
+  res.send('🟢 API funcionando correctamente');
 });
 app.get('/health', (req, res) => {
   res.status(200).json({ status: '🟢 API funcionando correctamente' });
