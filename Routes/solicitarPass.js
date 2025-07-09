@@ -11,7 +11,7 @@ const pool = new Pool({
   ssl: { require: true, rejectUnauthorized: false }
 });
 
-router.post('/solicitarpass', async (req, res) => {
+router.post('/', async (req, res) => {
   const { email } = req.body;
 
   if (!email) return res.status(400).json({ error: 'Email requerido' });
