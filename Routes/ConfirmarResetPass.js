@@ -5,7 +5,7 @@ import pool    from '../db.js';
 
 const router = express.Router();
 
-router.post('/auth/confirmarpass', async (req, res) => {
+router.post('/confirmarpass', async (req, res) => {
   // ────────────────────────── 1) Desestructurar body ──────────────────────────
   //  Aceptamos tanto "codigo" como "token" para evitar confusiones
   const { email, codigo, token, nuevaPassword } = req.body;
