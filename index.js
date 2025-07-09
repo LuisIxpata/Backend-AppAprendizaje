@@ -31,7 +31,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static('uploads'));
-app.use('/insertar_usuarios', insertarUsuario);
+app.use('/auth/register', insertarUsuario);
 app.use('/actualizar_usuarios', actualizarUsuario);
 app.use('/obtener_usuarios', obtenerUsuario);
 app.use('/eliminar_usuarios', eliminarUsuario);
