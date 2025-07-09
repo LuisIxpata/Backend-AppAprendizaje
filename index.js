@@ -17,6 +17,8 @@ import mensajesRoutes        from './Routes/mensajes.js';
 import authAutenticacion     from './Autenticacion/auth.js';
 import loginRoutes           from './Routes/login.js';
 import subirImagenRoutes     from './Routes/subir_imagen.js';
+import ConfirmarResetPass    from './Routes/ConfirmarResetPass.js';
+import solicitarPass from './Routes/solicitarPass.js';
 const app = express();
 
 app.get('/', (_, res) => {
@@ -43,7 +45,8 @@ app.use('/mensajes', mensajesRoutes);
 app.use('/auth', authAutenticacion);
 app.use('/login', loginRoutes);
 app.use('/imagen', subirImagenRoutes);
-
+app.use('/confirmar', ConfirmarResetPass);
+app.use('/solicitar', solicitarPass);
 //app.use('/', verUsuarios);
 //app.use('/', AddPassword);
 //app.use('/', VerColumnasUsuario);
