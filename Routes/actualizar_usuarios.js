@@ -51,11 +51,12 @@ router.put('/:id', verify, uploadCloud.single('foto'), async (req, res) => {
              apellido         = COALESCE($2, apellido),
              carnet           = COALESCE($3, carnet),
              rol              = COALESCE($4, rol),
-             photo_url        = COALESCE($5, photo_url),
-             photo_public_id  = COALESCE($6, photo_public_id)
+             telefono         = COALESCE($5, telefono),
+             photo_url        = COALESCE($6, photo_url),
+             photo_public_id  = COALESCE($7, photo_public_id)
        WHERE id = $7
-       RETURNING id, nombre, apellido, carnet, rol, photo_url`,
-      [nombre, apellido, carnet, rol, photo_url, photo_public_id, id]
+       RETURNING id, nombre, apellido, carnet, rol, telefono, photo_url`,
+      [nombre, apellido, carnet, rol, telefono, photo_url, photo_public_id, id]
     );
 
     res.json(rows[0]);

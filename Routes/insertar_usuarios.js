@@ -27,10 +27,10 @@ router.post('/', uploadCloud.single('foto'), async (req, res) => {
 
     const { rows } = await db.query(
       `INSERT INTO usuarios
-         (nombre, apellido, carnet, rol, correo, password, photo_url, photo_public_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING id, nombre, apellido, carnet, rol, correo, photo_url`,
-      [nombre, apellido, carnet, rol, correo, hashed, photo_url, photo_id]
+         (nombre, apellido, carnet, rol, correo, telefono, carrera, password, photo_url, photo_public_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING id, nombre, carnet, rol, correo, telefono, carrera, photo_url`,
+      [nombre, apellido, carnet, rol, correo, telefono, carrera, hashed, photo_url, photo_id]
     );
 
     res.status(201).json(rows[0]);
