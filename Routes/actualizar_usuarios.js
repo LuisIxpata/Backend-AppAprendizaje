@@ -13,7 +13,7 @@ const router = express.Router();
 ---------------------------------------------------------*/
 router.put('/:id', verify, uploadCloud.single('foto'), async (req, res) => {
   const { id } = req.params;
-  const { nombre, apellido, carnet, rol } = req.body;
+  const { nombre, apellido, carnet, rol, telefono } = req.body;
 
   try {
     /* 1) Obtener datos actuales para conocer el public_id previo */
