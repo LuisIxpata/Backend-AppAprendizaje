@@ -5,7 +5,7 @@ import verify from '../Autenticacion/verifyToken.js'; // Asegúrate que sea expo
 const router = express.Router();
 
 // DELETE /api/usuarios/:id  — Ruta protegida con JWT
-router.delete('/:id', verify, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   const { id } = req.params;
 
   try {

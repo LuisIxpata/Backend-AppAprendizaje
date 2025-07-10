@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post('/', uploadCloud.single('foto'), async (req, res) => {
   try {
-    const { nombre, apellido, carnet, rol, correo, password } = req.body;
+    const { nombre, apellido, carnet, rol, correo, telefono, carrera, password } = req.body;
 
     if (!nombre || !correo || !password) {
       return res.status(400).json({ error: 'Faltan campos obligatorios' });
