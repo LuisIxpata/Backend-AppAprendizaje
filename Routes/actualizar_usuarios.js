@@ -54,7 +54,7 @@ router.put('/:id', verify, uploadCloud.single('foto'), async (req, res) => {
              telefono         = COALESCE($5, telefono),
              photo_url        = COALESCE($6, photo_url),
              photo_public_id  = COALESCE($7, photo_public_id)
-       WHERE id = $7
+       WHERE id = $8
        RETURNING id, nombre, apellido, carnet, rol, telefono, photo_url`,
       [nombre, apellido, carnet, rol, telefono, photo_url, photo_public_id, id]
     );
