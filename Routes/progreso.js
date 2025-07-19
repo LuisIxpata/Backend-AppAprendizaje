@@ -9,9 +9,10 @@ const router = express.Router();
   POST /api/progreso
   Crea o actualiza (upsert) el registro de progreso
 ---------------------------------------------------------*/
-router.post('/', verify, async (req, res) => {
+router.post('/', async (req, res) => {
+  console.log('📨 POST /progreso recibido:', req.body);
   const { usuario_id, modulo_id, porcentaje } = req.body;
-
+  
   if (!usuario_id || !modulo_id || porcentaje == null) {
     return res.status(400).json({ error: 'Faltan campos requeridos' });
   }
@@ -26,7 +27,9 @@ router.post('/', verify, async (req, res) => {
        RETURNING *`,
       [usuario_id, modulo_id, porcentaje]
     );
+    console.log('Cuerpo recibido:', req.body);
     res.status(201).json(rows[0]);
+    
   } catch (err) {
     console.error('Error guardando progreso:', err);
     res.status(500).json({ error: 'Error guardando progreso' });
@@ -37,7 +40,7 @@ router.post('/', verify, async (req, res) => {
   GET /api/progreso/detallado  →  Progreso con JOIN a usuarios y módulos
   (colocada ANTES de /:id para que no la capture)
 ---------------------------------------------------------*/
-router.get('/detallado', verify, async (_, res) => {
+router.get('/detallado', async (_, res) => {
   try {
     const { rows } = await db.query(`
       SELECT 
@@ -66,7 +69,7 @@ router.get('/detallado', verify, async (_, res) => {
   ?usuario=ID             → progreso por usuario
   ?usuario=ID&modulo=ID   → progreso específico
 ---------------------------------------------------------*/
-router.get('/', verify, async (req, res) => {
+router.get('/', async (req, res) => {
   const { usuario, modulo } = req.query;
   let sql = 'SELECT * FROM progreso';
   const params = [];
@@ -80,7 +83,7 @@ router.get('/', verify, async (req, res) => {
     sql += params.length === 1 ? ' WHERE' : ' AND';
     sql += ` modulo_id = $${params.length}`;
   }
-  sql += ' ORDER BY ultima_actualizacion DESC';
+    sql += ' ORDER BY ultima_actualizacion DESC';
 
   try {
     const { rows } = await db.query(sql, params);
@@ -94,7 +97,7 @@ router.get('/', verify, async (req, res) => {
 /*---------------------------------------------------------
   DELETE /api/progreso/:id  → eliminar registro
 ---------------------------------------------------------*/
-router.delete('/:id', verify, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const del = await db.query(
       'DELETE FROM progreso WHERE id = $1 RETURNING id',

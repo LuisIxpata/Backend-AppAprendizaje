@@ -9,21 +9,28 @@ const router = express.Router();
 router.post('/', async (req, res) => {
   const { modulo_id, enunciado, tipo, opciones, respuesta_correcta } = req.body;
 
-  if (!modulo_id || !enunciado || !tipo || !respuesta_correcta) {
-    return res.status(400).json({ error: 'Campos obligatorios faltantes' });
+  if (!Array.isArray(opciones)) {
+    return res.status(400).json({ error: 'Opciones debe ser un arreglo' });
   }
 
   try {
-    const { rows } = await db.query(
+    const result = await db.query(
       `INSERT INTO preguntas (modulo_id, enunciado, tipo, opciones, respuesta_correcta)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [modulo_id, enunciado, tipo, opciones || null, respuesta_correcta]
+      [
+        modulo_id,
+        enunciado,
+        tipo,
+        JSON.stringify(opciones),
+        respuesta_correcta
+      ]
     );
-    res.status(201).json(rows[0]);
+
+    res.status(201).json(result.rows[0]); // ✅ Enviar respuesta
   } catch (err) {
-    console.error('Error creando pregunta:', err);
-    res.status(500).json({ error: 'Error creando pregunta' });
+    console.error('Error insertando pregunta:', err);
+    res.status(500).json({ error: 'Error insertando pregunta' });
   }
 });
 

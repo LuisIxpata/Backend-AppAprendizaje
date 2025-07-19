@@ -26,9 +26,9 @@ router.post('/', verify, async (req, res) => {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    // Obtener respuesta correcta
+    // Obtener respuesta correcta y módulo
     const preg = await db.query(
-      'SELECT respuesta_correcta FROM preguntas WHERE id = $1',
+      'SELECT respuesta_correcta, modulo_id FROM preguntas WHERE id = $1',
       [pregunta_id]
     );
     if (!preg.rowCount) {
@@ -36,16 +36,39 @@ router.post('/', verify, async (req, res) => {
     }
 
     const correcta = preg.rows[0].respuesta_correcta === respuesta;
+    const modulo_id = preg.rows[0].modulo_id;
 
-    // Insertar
-    const { rows } = await db.query(
+    // Insertar respuesta
+    const insert = await db.query(
       `INSERT INTO respuestas (usuario_id, pregunta_id, respuesta, correcta)
        VALUES ($1, $2, $3, $4)
        RETURNING *`,
       [usuario_id, pregunta_id, respuesta, correcta]
     );
 
-    res.status(201).json(rows[0]);
+    // Calcular nuevo porcentaje de progreso
+    const progresoQuery = await db.query(`
+      SELECT 
+        COUNT(*) FILTER (WHERE correcta) AS correctas,
+        COUNT(*) AS total
+      FROM respuestas r
+      JOIN preguntas p ON r.pregunta_id = p.id
+      WHERE r.usuario_id = $1 AND p.modulo_id = $2
+    `, [usuario_id, modulo_id]);
+
+    const { correctas, total } = progresoQuery.rows[0];
+    const porcentaje = total === 0 ? 0 : Math.round((correctas / total) * 100);
+
+    // Upsert en progreso
+    await db.query(`
+      INSERT INTO progreso (usuario_id, modulo_id, porcentaje)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (usuario_id, modulo_id)
+      DO UPDATE SET porcentaje = EXCLUDED.porcentaje,
+                    ultima_actualizacion = CURRENT_TIMESTAMP
+    `, [usuario_id, modulo_id, porcentaje]);
+
+    res.status(201).json(insert.rows[0]);
   } catch (err) {
     console.error('Error guardando respuesta:', err);
     res.status(500).json({ error: 'Error guardando respuesta' });

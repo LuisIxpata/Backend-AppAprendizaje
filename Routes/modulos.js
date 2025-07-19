@@ -67,16 +67,17 @@ router.get('/:id', async (req, res) => {
   PUT /api/modulos/:id  → actualizar módulo
 ---------------------------------------------------------*/
 router.put('/:id', async (req, res) => {
-  const { nombre, descripcion } = req.body;
+  const { nombre, descripcion, ruta} = req.body;
 
   try {
     const { rows } = await db.query(
       `UPDATE modulos
          SET nombre      = COALESCE($1, nombre),
-             descripcion = COALESCE($2, descripcion)
-       WHERE id = $3
+             descripcion = COALESCE($2, descripcion),
+             ruta = COALESCE($3, ruta)
+       WHERE id = $4
        RETURNING *`,
-      [nombre, descripcion, req.params.id]
+      [nombre, descripcion, ruta, req.params.id]
     );
 
     if (!rows.length) {
