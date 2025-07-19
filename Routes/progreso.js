@@ -40,29 +40,33 @@ router.post('/', async (req, res) => {
   GET /api/progreso/detallado  →  Progreso con JOIN a usuarios y módulos
   (colocada ANTES de /:id para que no la capture)
 ---------------------------------------------------------*/
-router.get('/detallado', async (_, res) => {
+router.get('/', async (req, res) => {
+  const { usuario, modulo } = req.query;
+  let sql = 'SELECT * FROM progreso';
+  const params = [];
+
+  if (usuario) {
+    params.push(usuario);
+    sql += ` WHERE usuario_id = $${params.length}`;
+  }
+  if (modulo) {
+    params.push(modulo);
+    sql += params.length === 1 ? ' WHERE' : ' AND';
+    sql += ` modulo_id = $${params.length}`;
+  }
+
+  sql += ' ORDER BY ultima_actualizacion DESC';
+
   try {
-    const { rows } = await db.query(`
-      SELECT 
-        p.id,
-        u.id   AS usuario_id,
-        u.nombre AS usuario_nombre,
-        u.correo AS usuario_correo,
-        m.id   AS modulo_id,
-        m.nombre AS modulo_nombre,
-        p.porcentaje,
-        p.ultima_actualizacion
-      FROM progreso p
-      JOIN usuarios u ON p.usuario_id = u.id
-      JOIN modulos  m ON p.modulo_id = m.id
-      ORDER BY p.ultima_actualizacion DESC
-    `);
+    console.log('🔍 Ejecutando SQL:', sql, params);
+    const { rows } = await db.query(sql, params);
     res.json(rows);
   } catch (err) {
-    console.error('Error obteniendo progreso detallado:', err);
-    res.status(500).json({ error: 'Error obteniendo progreso detallado' });
+    console.error('🔥 Error ejecutando SELECT en progreso:', err); // << más claro
+    res.status(500).json({ error: 'Error obteniendo progreso' });
   }
 });
+
 
 /*---------------------------------------------------------
   GET /api/progreso
