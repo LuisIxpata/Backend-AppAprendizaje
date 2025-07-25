@@ -10,9 +10,10 @@ const router = express.Router();
   Guarda la respuesta de un usuario y marca si es correcta
 ---------------------------------------------------------*/
 router.post('/', async (req, res) => {
+  console.log('🧾 Datos recibidos:', { usuario_id, pregunta_id, respuesta });
   try {
-   
-    console.log('🧾 Datos recibidos:', { usuario_id, pregunta_id, respuesta });
+    const { usuario_id, pregunta_id, respuesta } = req.body;
+    
 
     if (!usuario_id || !pregunta_id || respuesta == null) {
       return res.status(400).json({ error: 'Faltan campos requeridos' });
