@@ -23,6 +23,7 @@ router.post('/', async (req, res) => {
     const preguntaId = parseInt(pregunta_id);
 
     // Verificar existencia del usuario
+    console.log('🧪 ID numéricos:', { usuarioId, preguntaId });
     const userCheck = await db.query(
       'SELECT 1 FROM usuarios WHERE id = $1',
       [usuarioId]
@@ -32,6 +33,7 @@ router.post('/', async (req, res) => {
     }
 
     // Obtener respuesta correcta y módulo
+    console.log('🧪 ID numéricos:', { usuarioId, preguntaId });
     const preg = await db.query(
       'SELECT respuesta_correcta, modulo_id FROM preguntas WHERE id = $1',
       [preguntaId]
@@ -44,6 +46,7 @@ router.post('/', async (req, res) => {
     const correcta = respuesta === respuesta_correcta;
 
     // Guardar respuesta (insertar o actualizar si ya respondió antes)
+    console.log('🧪 ID numéricos:', { usuarioId, preguntaId });
     const { rows } = await db.query(
       `INSERT INTO respuestas (usuario_id, pregunta_id, respuesta, correcta)
        VALUES ($1, $2, $3, $4)
@@ -56,6 +59,7 @@ router.post('/', async (req, res) => {
     );
 
     // Calcular progreso actualizado
+    console.log('🧪 ID numéricos:', { usuarioId, preguntaId });
     const totalPreg = await db.query(
       `SELECT COUNT(*) FROM preguntas WHERE modulo_id = $1`,
       [modulo_id]
