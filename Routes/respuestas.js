@@ -47,6 +47,7 @@ router.post('/', async (req, res) => {
 
     // Guardar respuesta (insertar o actualizar si ya respondió antes)
     console.log('🧪 ID numéricos:', { usuarioId, preguntaId });
+    console.log('✅ Insertando respuesta...');
     const { rows } = await db.query(
       `INSERT INTO respuestas (usuario_id, pregunta_id, respuesta, correcta)
        VALUES ($1, $2, $3, $4)
@@ -57,6 +58,7 @@ router.post('/', async (req, res) => {
        RETURNING *`,
       [usuarioId, preguntaId, respuesta, correcta]
     );
+    console.log('✅ Respuesta guardada:', rows[0]);
 
     // Calcular progreso actualizado
     console.log('🧪 ID numéricos:', { usuarioId, preguntaId });
@@ -65,13 +67,14 @@ router.post('/', async (req, res) => {
       [modulo_id]
     );
     const total = parseInt(totalPreg.rows[0].count);
-
+    console.log('✅ Insertando respuesta...');
     const correctas = await db.query(
       `SELECT COUNT(*) FROM respuestas r
        INNER JOIN preguntas p ON r.pregunta_id = p.id
        WHERE r.usuario_id = $1 AND p.modulo_id = $2 AND r.correcta = true`,
       [usuarioId, modulo_id]
     );
+    console.log('✅ Respuesta guardada:', rows[0]);
     const aciertos = parseInt(correctas.rows[0].count);
 
     const porcentaje = total > 0 ? Math.round((aciertos / total) * 100) : 0;
