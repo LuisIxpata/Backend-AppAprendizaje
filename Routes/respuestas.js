@@ -11,29 +11,21 @@ const router = express.Router();
 ---------------------------------------------------------*/
 router.post('/', async (req, res) => {
   try {
-
-    
-
-    console.log('📦 Datos recibidos:', req.body);
-    const {
-  usuario_id,
-  pregunta_id,
-  respuesta
-} = req.body;
-
-const usuarioId = parseInt(usuario_id);
-const preguntaId = parseInt(pregunta_id);
-
+    const { usuario_id, pregunta_id, respuesta } = req.body;
     console.log('📦 Datos recibidos:', { usuario_id, pregunta_id, respuesta });
 
     if (!usuario_id || !pregunta_id || respuesta == null) {
       return res.status(400).json({ error: 'Faltan campos requeridos' });
     }
 
+    // Convertir a número para evitar errores de tipo
+    const usuarioId = parseInt(usuario_id);
+    const preguntaId = parseInt(pregunta_id);
+
     // Verificar existencia del usuario
     const userCheck = await db.query(
       'SELECT 1 FROM usuarios WHERE id = $1',
-      [usuario_id]
+      [usuarioId]
     );
     if (!userCheck.rowCount) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
@@ -42,7 +34,7 @@ const preguntaId = parseInt(pregunta_id);
     // Obtener respuesta correcta y módulo
     const preg = await db.query(
       'SELECT respuesta_correcta, modulo_id FROM preguntas WHERE id = $1',
-      [pregunta_id]
+      [preguntaId]
     );
     if (!preg.rowCount) {
       return res.status(404).json({ error: 'Pregunta no encontrada' });
@@ -57,9 +49,10 @@ const preguntaId = parseInt(pregunta_id);
        VALUES ($1, $2, $3, $4)
        ON CONFLICT (usuario_id, pregunta_id)
        DO UPDATE SET respuesta = EXCLUDED.respuesta,
-                     correcta = EXCLUDED.correcta
+                     correcta = EXCLUDED.correcta,
+                     fecha_respuesta = CURRENT_TIMESTAMP
        RETURNING *`,
-      [usuario_id, pregunta_id, respuesta, correcta]
+      [usuarioId, preguntaId, respuesta, correcta]
     );
 
     // Calcular progreso actualizado
@@ -73,7 +66,7 @@ const preguntaId = parseInt(pregunta_id);
       `SELECT COUNT(*) FROM respuestas r
        INNER JOIN preguntas p ON r.pregunta_id = p.id
        WHERE r.usuario_id = $1 AND p.modulo_id = $2 AND r.correcta = true`,
-      [usuario_id, modulo_id]
+      [usuarioId, modulo_id]
     );
     const aciertos = parseInt(correctas.rows[0].count);
 
@@ -86,15 +79,17 @@ const preguntaId = parseInt(pregunta_id);
        ON CONFLICT (usuario_id, modulo_id)
        DO UPDATE SET porcentaje = EXCLUDED.porcentaje,
                      ultima_actualizacion = CURRENT_TIMESTAMP`,
-      [usuario_id, modulo_id, porcentaje]
+      [usuarioId, modulo_id, porcentaje]
     );
 
     res.status(201).json({ ...rows[0], porcentaje_actualizado: porcentaje });
+
   } catch (err) {
     console.error('❌ Error guardando respuesta:', err.message);
     res.status(500).json({ error: 'Error guardando respuesta' });
   }
 });
+
 
 
 
