@@ -10,9 +10,6 @@ const router = express.Router();
   Guarda la respuesta de un usuario y marca si es correcta
 ---------------------------------------------------------*/
 router.post('/', async (req, res) => {
-
-  console.log('📩 POST /respuestas recibido:', req.body);
-
   try {
     const { usuario_id, pregunta_id, respuesta } = req.body;
 
@@ -43,11 +40,14 @@ router.post('/', async (req, res) => {
 
     // Guardar respuesta
     const { rows } = await db.query(
-      `INSERT INTO respuestas (usuario_id, pregunta_id, respuesta, correcta)
-       VALUES ($1, $2, $3, $4)
-       RETURNING *`,
-      [usuario_id, pregunta_id, respuesta, correcta]
-    );
+  `INSERT INTO respuestas (usuario_id, pregunta_id, respuesta, correcta)
+   VALUES ($1, $2, $3, $4)
+   ON CONFLICT (usuario_id, pregunta_id)
+   DO UPDATE SET respuesta = EXCLUDED.respuesta,
+                 correcta = EXCLUDED.correcta
+   RETURNING *`,
+  [usuario_id, pregunta_id, respuesta, correcta]
+);
 
     // ----------------------------------------------
     // 🔄 Calcular progreso automáticamente
