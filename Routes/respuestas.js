@@ -10,10 +10,11 @@ const router = express.Router();
   Guarda la respuesta de un usuario y marca si es correcta
 ---------------------------------------------------------*/
 router.post('/', async (req, res) => {
-  
   try {
+    console.log('📦 Datos recibidos:', req.body);
     const { usuario_id, pregunta_id, respuesta } = req.body;
-    console.log('🧾 Datos recibidos:', { usuario_id, pregunta_id, respuesta });
+
+    console.log('📦 Datos recibidos:', { usuario_id, pregunta_id, respuesta });
 
     if (!usuario_id || !pregunta_id || respuesta == null) {
       return res.status(400).json({ error: 'Faltan campos requeridos' });
@@ -28,7 +29,7 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    // Obtener respuesta correcta y modulo_id
+    // Obtener respuesta correcta y módulo
     const preg = await db.query(
       'SELECT respuesta_correcta, modulo_id FROM preguntas WHERE id = $1',
       [pregunta_id]
@@ -38,32 +39,26 @@ router.post('/', async (req, res) => {
     }
 
     const { respuesta_correcta, modulo_id } = preg.rows[0];
-    const correcta = respuesta_correcta === respuesta;
+    const correcta = respuesta === respuesta_correcta;
 
-    // Guardar respuesta
-    console.log('✅ Guardando en DB con:', usuario_id, pregunta_id, respuesta, correcta);
+    // Guardar respuesta (insertar o actualizar si ya respondió antes)
     const { rows } = await db.query(
-  `INSERT INTO respuestas (usuario_id, pregunta_id, respuesta, correcta)
-   VALUES ($1, $2, $3, $4)
-   ON CONFLICT (usuario_id, pregunta_id)
-   DO UPDATE SET respuesta = EXCLUDED.respuesta,
-                 correcta = EXCLUDED.correcta
-   RETURNING *`,
-  [usuario_id, pregunta_id, respuesta, correcta]
-);
+      `INSERT INTO respuestas (usuario_id, pregunta_id, respuesta, correcta)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (usuario_id, pregunta_id)
+       DO UPDATE SET respuesta = EXCLUDED.respuesta,
+                     correcta = EXCLUDED.correcta
+       RETURNING *`,
+      [usuario_id, pregunta_id, respuesta, correcta]
+    );
 
-    // ----------------------------------------------
-    // 🔄 Calcular progreso automáticamente
-    // ----------------------------------------------
-
-    // Total de preguntas del módulo
+    // Calcular progreso actualizado
     const totalPreg = await db.query(
       `SELECT COUNT(*) FROM preguntas WHERE modulo_id = $1`,
       [modulo_id]
     );
     const total = parseInt(totalPreg.rows[0].count);
 
-    // Total de respuestas correctas de este usuario en ese módulo
     const correctas = await db.query(
       `SELECT COUNT(*) FROM respuestas r
        INNER JOIN preguntas p ON r.pregunta_id = p.id
@@ -74,7 +69,7 @@ router.post('/', async (req, res) => {
 
     const porcentaje = total > 0 ? Math.round((aciertos / total) * 100) : 0;
 
-    // UPSERT a progreso
+    // Insertar o actualizar progreso
     await db.query(
       `INSERT INTO progreso (usuario_id, modulo_id, porcentaje)
        VALUES ($1, $2, $3)
@@ -84,15 +79,13 @@ router.post('/', async (req, res) => {
       [usuario_id, modulo_id, porcentaje]
     );
 
-    // ----------------------------------------------
-
     res.status(201).json({ ...rows[0], porcentaje_actualizado: porcentaje });
-
   } catch (err) {
-    console.error('Error guardando respuesta:', err);
+    console.error('❌ Error guardando respuesta:', err.message);
     res.status(500).json({ error: 'Error guardando respuesta' });
   }
 });
+
 
 
 /*---------------------------------------------------------
