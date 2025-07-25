@@ -11,7 +11,8 @@ const router = express.Router();
 ---------------------------------------------------------*/
 router.post('/', async (req, res) => {
   try {
-    const { usuario_id, pregunta_id, respuesta } = req.body;
+   
+    console.log('🧾 Datos recibidos:', { usuario_id, pregunta_id, respuesta });
 
     if (!usuario_id || !pregunta_id || respuesta == null) {
       return res.status(400).json({ error: 'Faltan campos requeridos' });
@@ -39,6 +40,7 @@ router.post('/', async (req, res) => {
     const correcta = respuesta_correcta === respuesta;
 
     // Guardar respuesta
+    console.log('✅ Guardando en DB con:', usuario_id, pregunta_id, respuesta, correcta);
     const { rows } = await db.query(
   `INSERT INTO respuestas (usuario_id, pregunta_id, respuesta, correcta)
    VALUES ($1, $2, $3, $4)
