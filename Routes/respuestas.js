@@ -9,7 +9,7 @@ const router = express.Router();
   POST /api/respuestas
   Guarda la respuesta de un usuario y marca si es correcta
 ---------------------------------------------------------*/
-router.post('/', verify, async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { usuario_id, pregunta_id, respuesta } = req.body;
 
@@ -17,7 +17,7 @@ router.post('/', verify, async (req, res) => {
       return res.status(400).json({ error: 'Faltan campos requeridos' });
     }
 
-    // Verificar usuario
+    // Verificar existencia del usuario
     const userCheck = await db.query(
       'SELECT 1 FROM usuarios WHERE id = $1',
       [usuario_id]
@@ -26,7 +26,7 @@ router.post('/', verify, async (req, res) => {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    // Obtener respuesta correcta y módulo
+    // Obtener respuesta correcta y modulo_id
     const preg = await db.query(
       'SELECT respuesta_correcta, modulo_id FROM preguntas WHERE id = $1',
       [pregunta_id]
@@ -35,45 +35,59 @@ router.post('/', verify, async (req, res) => {
       return res.status(404).json({ error: 'Pregunta no encontrada' });
     }
 
-    const correcta = preg.rows[0].respuesta_correcta === respuesta;
-    const modulo_id = preg.rows[0].modulo_id;
+    const { respuesta_correcta, modulo_id } = preg.rows[0];
+    const correcta = respuesta_correcta === respuesta;
 
-    // Insertar respuesta
-    const insert = await db.query(
+    // Guardar respuesta
+    const { rows } = await db.query(
       `INSERT INTO respuestas (usuario_id, pregunta_id, respuesta, correcta)
        VALUES ($1, $2, $3, $4)
        RETURNING *`,
       [usuario_id, pregunta_id, respuesta, correcta]
     );
 
-    // Calcular nuevo porcentaje de progreso
-    const progresoQuery = await db.query(`
-      SELECT 
-        COUNT(*) FILTER (WHERE correcta) AS correctas,
-        COUNT(*) AS total
-      FROM respuestas r
-      JOIN preguntas p ON r.pregunta_id = p.id
-      WHERE r.usuario_id = $1 AND p.modulo_id = $2
-    `, [usuario_id, modulo_id]);
+    // ----------------------------------------------
+    // 🔄 Calcular progreso automáticamente
+    // ----------------------------------------------
 
-    const { correctas, total } = progresoQuery.rows[0];
-    const porcentaje = total === 0 ? 0 : Math.round((correctas / total) * 100);
+    // Total de preguntas del módulo
+    const totalPreg = await db.query(
+      `SELECT COUNT(*) FROM preguntas WHERE modulo_id = $1`,
+      [modulo_id]
+    );
+    const total = parseInt(totalPreg.rows[0].count);
 
-    // Upsert en progreso
-    await db.query(`
-      INSERT INTO progreso (usuario_id, modulo_id, porcentaje)
-      VALUES ($1, $2, $3)
-      ON CONFLICT (usuario_id, modulo_id)
-      DO UPDATE SET porcentaje = EXCLUDED.porcentaje,
-                    ultima_actualizacion = CURRENT_TIMESTAMP
-    `, [usuario_id, modulo_id, porcentaje]);
+    // Total de respuestas correctas de este usuario en ese módulo
+    const correctas = await db.query(
+      `SELECT COUNT(*) FROM respuestas r
+       INNER JOIN preguntas p ON r.pregunta_id = p.id
+       WHERE r.usuario_id = $1 AND p.modulo_id = $2 AND r.correcta = true`,
+      [usuario_id, modulo_id]
+    );
+    const aciertos = parseInt(correctas.rows[0].count);
 
-    res.status(201).json(insert.rows[0]);
+    const porcentaje = total > 0 ? Math.round((aciertos / total) * 100) : 0;
+
+    // UPSERT a progreso
+    await db.query(
+      `INSERT INTO progreso (usuario_id, modulo_id, porcentaje)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (usuario_id, modulo_id)
+       DO UPDATE SET porcentaje = EXCLUDED.porcentaje,
+                     ultima_actualizacion = CURRENT_TIMESTAMP`,
+      [usuario_id, modulo_id, porcentaje]
+    );
+
+    // ----------------------------------------------
+
+    res.status(201).json({ ...rows[0], porcentaje_actualizado: porcentaje });
+
   } catch (err) {
     console.error('Error guardando respuesta:', err);
     res.status(500).json({ error: 'Error guardando respuesta' });
   }
 });
+
 
 /*---------------------------------------------------------
   GET /api/respuestas/:id → obtener una respuesta
@@ -128,7 +142,7 @@ router.get('/', async (req, res) => {
 /*---------------------------------------------------------
   DELETE /api/respuestas/:id → eliminar respuesta
 ---------------------------------------------------------*/
-router.delete('/:id', verify, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const del = await db.query(
       'DELETE FROM respuestas WHERE id = $1 RETURNING id',

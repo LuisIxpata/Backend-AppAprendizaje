@@ -19,6 +19,8 @@ import loginRoutes           from './Routes/login.js';
 import subirImagenRoutes     from './Routes/subir_imagen.js';
 import ConfirmarResetPass    from './Routes/ConfirmarResetPass.js';
 import solicitarPass from './Routes/solicitarPass.js';
+import CalcularProgreso from './Routes/CalcularProgreso.js';
+import GuardarProgreso from './Routes/GuardarProgreso.js';
 const app = express();
 
 app.get('/', (_, res) => {
@@ -47,6 +49,8 @@ app.use('/login', loginRoutes);
 app.use('/imagen', subirImagenRoutes);
 app.use('/confirmarpass', ConfirmarResetPass);
 app.use('/solicitarpass', solicitarPass);
+app.use('/calculate', CalcularProgreso);
+app.use('/sync', GuardarProgreso);
 //app.use('/', verUsuarios);
 //app.use('/', AddPassword);
 //app.use('/', VerColumnasUsuario);
