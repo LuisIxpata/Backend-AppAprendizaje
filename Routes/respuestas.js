@@ -10,6 +10,9 @@ const router = express.Router();
   Guarda la respuesta de un usuario y marca si es correcta
 ---------------------------------------------------------*/
 router.post('/', async (req, res) => {
+
+  console.log('📩 POST /respuestas recibido:', req.body);
+
   try {
     const { usuario_id, pregunta_id, respuesta } = req.body;
 
