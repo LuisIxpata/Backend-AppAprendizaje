@@ -11,8 +11,18 @@ const router = express.Router();
 ---------------------------------------------------------*/
 router.post('/', async (req, res) => {
   try {
+
+    
+
     console.log('📦 Datos recibidos:', req.body);
-    const { usuario_id, pregunta_id, respuesta } = req.body;
+    const {
+  usuario_id,
+  pregunta_id,
+  respuesta
+} = req.body;
+
+const usuarioId = parseInt(usuario_id);
+const preguntaId = parseInt(pregunta_id);
 
     console.log('📦 Datos recibidos:', { usuario_id, pregunta_id, respuesta });
 

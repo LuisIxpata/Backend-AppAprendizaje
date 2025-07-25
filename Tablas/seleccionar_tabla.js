@@ -10,15 +10,15 @@ const pool = new Pool({
 
 async function obtenerProgreso() {
   try {
-    const res = await pool.query('SELECT * FROM progreso');
-    console.log('📊 Resultados de la tabla progreso:');
+    const res = await pool.query('SELECT * FROM preguntas');
+    console.log('📊 Resultados de la tabla :');
     console.table(res.rows);
   } catch (err) {
-    console.error('❌ Error al consultar progreso:', err);
+    console.error('❌ Error al consultar:', err);
   } finally {
     await pool.end(); // Cierra la conexión
   }
 }
 
-// Ejecuta la función
+
 obtenerProgreso();
