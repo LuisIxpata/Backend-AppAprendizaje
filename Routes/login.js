@@ -29,6 +29,7 @@ router.post('/', async (req, res) => {
   expiresIn: '1h',
   });
 
+  console.log('🕒 Hora del servidor:', new Date().toISOString());
   
   res.json({ token, usuario });
 });
