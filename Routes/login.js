@@ -26,7 +26,7 @@ router.post('/', async (req, res) => {
   }
 
   const token = jwt.sign({ id: usuario.id }, SECRET_KEY, {
-  expiresIn: '12h',
+  expiresIn: '7d',
   });
 
   
