@@ -26,10 +26,10 @@ router.post('/', async (req, res) => {
   }
 
   const token = jwt.sign({ id: usuario.id }, SECRET_KEY, {
-  expiresIn: '8h',
+  expiresIn: '12h',
   });
 
-  console.log('🕒 Hora del servidor:', new Date().toISOString());
+  
   
   res.json({ token, usuario });
 });
