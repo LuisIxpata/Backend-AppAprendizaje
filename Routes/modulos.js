@@ -94,7 +94,7 @@ router.put('/:id', async (req, res) => {
   DELETE /api/modulos/:id  → eliminar módulo
   (protegido con JWT)
 ---------------------------------------------------------*/
-router.delete('/:id', verify, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const del = await db.query(
       'DELETE FROM modulos WHERE id = $1 RETURNING id',
