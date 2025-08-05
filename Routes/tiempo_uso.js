@@ -1,9 +1,9 @@
-// rutas/tiempoUso.js
 import express from 'express';
 import pool from '../db.js';
 
 const router = express.Router();
 
+// POST - Guardar tiempo de uso
 router.post('/tiempo-uso', async (req, res) => {
   const { usuario_id, tiempo_en_segundos } = req.body;
 
@@ -34,10 +34,12 @@ router.post('/tiempo-uso', async (req, res) => {
     console.error('❌ Error al registrar tiempo de uso:', err);
     res.status(500).json({ error: 'Error interno al guardar tiempo de uso' });
   }
+});
 
-  // Obtener tiempo total de uso por usuario
+// GET - Obtener tiempo de uso
 router.get('/tiempo-uso/:usuario_id', async (req, res) => {
   const { usuario_id } = req.params;
+  console.log('🟢 Solicitud GET /tiempo-uso/', usuario_id);
 
   try {
     const result = await pool.query(
@@ -46,17 +48,14 @@ router.get('/tiempo-uso/:usuario_id', async (req, res) => {
     );
 
     if (result.rowCount === 0) {
-      // No hay registro aún, devolvemos tiempo 0
       return res.json({ tiempo_total_segundos: 0 });
     }
 
-    res.json(result.rows[0]); // { tiempo_total_segundos: ... }
+    res.json(result.rows[0]);
   } catch (err) {
     console.error('❌ Error al obtener tiempo de uso:', err);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
-});
-
 });
 
 export default router;
