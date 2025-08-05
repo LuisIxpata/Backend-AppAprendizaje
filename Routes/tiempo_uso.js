@@ -4,7 +4,7 @@ import pool from '../db.js';
 
 const router = express.Router();
 
-router.post('/tiempo_uso', async (req, res) => {
+router.post('/tiempo-uso', async (req, res) => {
   const { usuario_id, tiempo_en_segundos } = req.body;
 
   try {
@@ -36,7 +36,7 @@ router.post('/tiempo_uso', async (req, res) => {
   }
 
   // Obtener tiempo total de uso por usuario
-router.get('/tiempo_uso/:usuario_id', async (req, res) => {
+router.get('/tiempo-uso/:usuario_id', async (req, res) => {
   const { usuario_id } = req.params;
 
   try {
