@@ -52,7 +52,7 @@ app.use('/confirmarpass', ConfirmarResetPass);
 app.use('/solicitarpass', solicitarPass);
 app.use('/calculate', CalcularProgreso);
 app.use('/sync', GuardarProgreso);
-app.use('/tiempo_uso', TiempoUso);
+app.use(TiempoUso);
 //app.use('/', verUsuarios);
 //app.use('/', AddPassword);
 //app.use('/', VerColumnasUsuario);
