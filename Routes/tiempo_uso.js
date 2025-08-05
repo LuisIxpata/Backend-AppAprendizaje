@@ -4,7 +4,7 @@ import pool from '../db.js';
 
 const router = express.Router();
 
-router.post('/tiempo-uso', async (req, res) => {
+router.post('/tiempo_uso', async (req, res) => {
   const { usuario_id, tiempo_en_segundos } = req.body;
 
   try {
