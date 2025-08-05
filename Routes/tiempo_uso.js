@@ -4,8 +4,9 @@ import pool from '../db.js';
 const router = express.Router();
 
 // POST - Guardar tiempo de uso
+// POST - Guardar tiempo de uso
 router.post('/tiempo-uso', async (req, res) => {
-  const { usuario_id, tiempo_en_segundos } = req.body;
+  const { usuario_id, tiempo_segundos } = req.body;
 
   try {
     const existente = await pool.query(
@@ -19,13 +20,13 @@ router.post('/tiempo-uso', async (req, res) => {
          SET tiempo_total_segundos = tiempo_total_segundos + $1,
              ultima_fecha = CURRENT_TIMESTAMP
          WHERE usuario_id = $2`,
-        [tiempo_en_segundos, usuario_id]
+        [tiempo_segundos, usuario_id]
       );
     } else {
       await pool.query(
         `INSERT INTO tiempo_uso (usuario_id, tiempo_total_segundos)
          VALUES ($1, $2)`,
-        [usuario_id, tiempo_en_segundos]
+        [usuario_id, tiempo_segundos]
       );
     }
 
@@ -35,6 +36,7 @@ router.post('/tiempo-uso', async (req, res) => {
     res.status(500).json({ error: 'Error interno al guardar tiempo de uso' });
   }
 });
+
 
 // GET - Obtener tiempo de uso
 router.get('/tiempo-uso/:usuario_id', async (req, res) => {
