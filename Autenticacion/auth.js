@@ -3,7 +3,7 @@ import express from 'express';
 import db from '../db.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import 'dotenv/config';          // carga .env automáticamente
+import 'dotenv/config';          
 
 const router = express.Router();
 const SECRET = process.env.JWT_SECRET || 'secreto_super_seguro';
@@ -44,6 +44,7 @@ router.post('/register', async (req, res) => {
   );
 
   res.status(201).json({ usuario: rows[0], token });
+  console.log("Los datos del token son: ", token.data);
 });
 
 /*---------------------------------------------------------

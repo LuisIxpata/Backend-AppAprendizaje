@@ -21,6 +21,7 @@ import ConfirmarResetPass    from './Routes/ConfirmarResetPass.js';
 import solicitarPass from './Routes/solicitarPass.js';
 import CalcularProgreso from './Routes/CalcularProgreso.js';
 import GuardarProgreso from './Routes/GuardarProgreso.js';
+import TiempoUso from './Routes/tiempo_uso.js';
 const app = express();
 
 app.get('/', (_, res) => {
@@ -51,6 +52,7 @@ app.use('/confirmarpass', ConfirmarResetPass);
 app.use('/solicitarpass', solicitarPass);
 app.use('/calculate', CalcularProgreso);
 app.use('/sync', GuardarProgreso);
+app.use('/tiempo_uso', TiempoUso);
 //app.use('/', verUsuarios);
 //app.use('/', AddPassword);
 //app.use('/', VerColumnasUsuario);
