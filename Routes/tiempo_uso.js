@@ -3,60 +3,79 @@ import pool from '../db.js';
 
 const router = express.Router();
 
-// POST - Guardar tiempo de uso
-// POST - Guardar tiempo de uso
+/* Utilidad: toma el usuario_id desde params o query o body (si no usas JWT) */
+function getUserId(req) {
+  const fromParams = Number(req.params?.usuario_id);
+  const fromQuery = Number(req.query?.usuario_id);
+  const fromBody  = Number(req.body?.usuario_id);
+  // Si tu middleware de auth pone req.user.id, prefierelo:
+  const fromToken = req.user?.id ? Number(req.user.id) : null;
+  return fromToken || fromParams || fromQuery || fromBody || null;
+}
+
+/* ================================
+ * POST /tiempo-uso  (acumular)
+ * Body: { usuario_id, tiempo_en_segundos | tiempo_segundos }
+ * ================================ */
 router.post('/tiempo-uso', async (req, res) => {
-  const { usuario_id, tiempo_segundos } = req.body;
-
   try {
-    const existente = await pool.query(
-      'SELECT * FROM tiempo_uso WHERE usuario_id = $1',
-      [usuario_id]
-    );
+    const usuario_id = getUserId(req);
+    // acepta ambos nombres
+    const raw = req.body?.tiempo_en_segundos ?? req.body?.tiempo_segundos;
+    const tiempo = Number.parseInt(raw, 10);
 
-    if (existente.rowCount > 0) {
-      await pool.query(
-        `UPDATE tiempo_uso
-         SET tiempo_total_segundos = tiempo_total_segundos + $1,
-             ultima_fecha = CURRENT_TIMESTAMP
-         WHERE usuario_id = $2`,
-        [tiempo_segundos, usuario_id]
-      );
-    } else {
-      await pool.query(
-        `INSERT INTO tiempo_uso (usuario_id, tiempo_total_segundos)
-         VALUES ($1, $2)`,
-        [usuario_id, tiempo_segundos]
-      );
+    if (!usuario_id) {
+      return res.status(400).json({ error: 'Falta usuario_id' });
+    }
+    if (!Number.isFinite(tiempo) || tiempo <= 0) {
+      return res.status(400).json({ error: 'tiempo_en_segundos debe ser un entero > 0' });
     }
 
-    res.json({ mensaje: '⏱️ Tiempo registrado correctamente' });
+    // UPSERT: suma y actualiza ultima_fecha
+    const upsert = `
+      INSERT INTO tiempo_uso (usuario_id, tiempo_total_segundos, ultima_fecha)
+      VALUES ($1, $2, CURRENT_TIMESTAMP)
+      ON CONFLICT (usuario_id) DO UPDATE
+        SET tiempo_total_segundos = tiempo_uso.tiempo_total_segundos + EXCLUDED.tiempo_total_segundos,
+            ultima_fecha = CURRENT_TIMESTAMP
+      RETURNING tiempo_total_segundos;
+    `;
+
+    const { rows } = await pool.query(upsert, [usuario_id, tiempo]);
+    const total = Number(rows?.[0]?.tiempo_total_segundos ?? 0);
+
+    return res.json({
+      ok: true,
+      mensaje: '⏱️ Tiempo registrado correctamente',
+      agregado: tiempo,
+      tiempo_total_segundos: total,
+    });
   } catch (err) {
     console.error('❌ Error al registrar tiempo de uso:', err);
-    res.status(500).json({ error: 'Error interno al guardar tiempo de uso' });
+    return res.status(500).json({ error: 'Error interno al guardar tiempo de uso' });
   }
 });
 
-
-// GET - Obtener tiempo de uso
+/* =========================================
+ * GET /tiempo-uso/:usuario_id  (leer total)
+ * ========================================= */
 router.get('/tiempo-uso/:usuario_id', async (req, res) => {
-  const { usuario_id } = req.params;
-  console.log('🟢 Solicitud GET /tiempo-uso/', usuario_id);
-
   try {
-    const result = await pool.query(
-      'SELECT tiempo_total_segundos FROM tiempo_uso WHERE usuario_id = $1',
-      [usuario_id]
-    );
+    const usuario_id = getUserId(req);
+    if (!usuario_id) return res.status(400).json({ error: 'Falta usuario_id' });
 
-    if (result.rowCount === 0) {
-      return res.json({ tiempo_total_segundos: 0 });
-    }
+    const q = `
+      SELECT COALESCE(tiempo_total_segundos, 0) AS tiempo_total_segundos
+      FROM tiempo_uso
+      WHERE usuario_id = $1
+    `;
+    const { rows } = await pool.query(q, [usuario_id]);
 
-    res.json(result.rows[0]);
+    const total = Number(rows?.[0]?.tiempo_total_segundos ?? 0);
+    return res.json({ ok: true, tiempo_total_segundos: total });
   } catch (err) {
     console.error('❌ Error al obtener tiempo de uso:', err);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    return res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
