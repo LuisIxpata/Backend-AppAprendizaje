@@ -10,7 +10,7 @@ const pool = new Pool({
 
 async function obtenerProgreso() {
   try {
-    const res = await pool.query('SELECT * FROM respuestas');
+    const res = await pool.query('SELECT * FROM usuarios');
     console.log('📊 Resultados de la tabla :');
     console.table(res.rows);
   } catch (err) {

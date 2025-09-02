@@ -9,11 +9,11 @@ const router = express.Router();
 
 /*---------------------------------------------------------
   PUT /api/usuarios/:id
-  Campos permitidos: nombre, apellido, carnet, rol, foto
+  Campos permitidos: nombre, apellido, carnet, rol, telefono, carrera, foto
 ---------------------------------------------------------*/
-router.put('/:id', verify, uploadCloud.single('foto'), async (req, res) => {
+router.put('/:id', uploadCloud.single('foto'), async (req, res) => {
   const { id } = req.params;
-  const { nombre, apellido, carnet, rol, telefono } = req.body;
+  const { nombre, apellido, carnet, rol, telefono, carrera } = req.body;
 
   try {
     /* 1) Obtener datos actuales para conocer el public_id previo */
@@ -31,10 +31,10 @@ router.put('/:id', verify, uploadCloud.single('foto'), async (req, res) => {
     let photo_public_id = undefined;
 
     if (req.file) {
-      photo_url = req.file.path;          // URL Cloudinary
-      photo_public_id = req.file.filename; // public_id Cloudinary
+      photo_url = req.file.path;           
+      photo_public_id = req.file.filename; 
 
-     
+      // Borrar imagen anterior si existía
       if (oldPublicId) {
         try {
           await cloudinary.uploader.destroy(oldPublicId);
@@ -44,7 +44,7 @@ router.put('/:id', verify, uploadCloud.single('foto'), async (req, res) => {
       }
     }
 
-    /* 3) Actualizar registro */
+    /* 3) Actualizar registro (incluye carrera) */
     const { rows } = await db.query(
       `UPDATE usuarios
          SET nombre           = COALESCE($1, nombre),
@@ -52,11 +52,12 @@ router.put('/:id', verify, uploadCloud.single('foto'), async (req, res) => {
              carnet           = COALESCE($3, carnet),
              rol              = COALESCE($4, rol),
              telefono         = COALESCE($5, telefono),
-             photo_url        = COALESCE($6, photo_url),
-             photo_public_id  = COALESCE($7, photo_public_id)
-       WHERE id = $8
-       RETURNING id, nombre, apellido, carnet, rol, telefono, photo_url`,
-      [nombre, apellido, carnet, rol, telefono, photo_url, photo_public_id, id]
+             carrera          = COALESCE($6, carrera),
+             photo_url        = COALESCE($7, photo_url),
+             photo_public_id  = COALESCE($8, photo_public_id)
+       WHERE id = $9
+       RETURNING id, nombre, apellido, carnet, rol, telefono, carrera, photo_url`,
+      [nombre, apellido, carnet, rol, telefono, carrera, photo_url, photo_public_id, id]
     );
 
     res.json(rows[0]);
