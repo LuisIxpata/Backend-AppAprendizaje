@@ -1,7 +1,7 @@
 // routes/archivos.js
 import { Router } from 'express';
 import db from '../db.js';
-import auth from '../middlewares/auth.js';
+
 
 // --- Opcional: subida de archivos con multer (memoria) ---
 import multer from 'multer';
@@ -48,7 +48,7 @@ const rowToClient = r => ({
 
 /* ===================== GET /archivos ===================== */
 /* Lista solo los archivos del usuario. Admin puede ver todo con ?scope=all */
-router.get('/', auth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { id: userId, rol } = req.user;
     const seeAll = req.query.scope === 'all' && rol === 'admin';
@@ -74,7 +74,7 @@ router.get('/', auth, async (req, res) => {
 
 /* ===================== GET /archivos/:id ===================== */
 /* (opcional) metadata de un archivo si es del dueño */
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const fileId = Number(req.params.id);
     if (!fileId) return res.status(400).json({ error: 'ID inválido' });
@@ -100,7 +100,7 @@ router.get('/:id', auth, async (req, res) => {
 
 /* ===================== GET /archivos/:id/download-url ===================== */
 /* Devuelve una URL de descarga si el archivo es del usuario */
-router.get('/:id/download-url', auth, async (req, res) => {
+router.get('/:id/download-url', async (req, res) => {
   try {
     const fileId = Number(req.params.id);
     if (!fileId) return res.status(400).json({ error: 'ID inválido' });
@@ -131,7 +131,6 @@ router.get('/:id/download-url', auth, async (req, res) => {
 /* A) Modo URL directa (body.url) | B) Modo archivo form-data (archivo) */
 router.post(
   '/',
-  auth,
   upload.single('archivo'), // permite recibir archivo; si no viene, no falla
   async (req, res) => {
     try {
@@ -196,7 +195,7 @@ router.post(
 
 /* ===================== DELETE /archivos/:id ===================== */
 /* Solo dueño (o admin) puede eliminar */
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const fileId = Number(req.params.id);
     if (!fileId) return res.status(400).json({ error: 'ID inválido' });
