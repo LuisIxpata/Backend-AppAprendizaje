@@ -22,6 +22,8 @@ import solicitarPass from './Routes/solicitarPass.js';
 import CalcularProgreso from './Routes/CalcularProgreso.js';
 import GuardarProgreso from './Routes/GuardarProgreso.js';
 import TiempoUso from './Routes/tiempo_uso.js';
+//import obtenerdatosDocente from './Routes/obtenerdatosDocente.js';
+import authRouter from './Autenticacion/auth.js';
 const app = express();
 
 app.get('/', (_, res) => {
@@ -53,6 +55,8 @@ app.use('/solicitarpass', solicitarPass);
 app.use('/calculate', CalcularProgreso);
 app.use('/sync', GuardarProgreso);
 app.use(TiempoUso);
+//app.use('/docentes/overview', obtenerdatosDocente);
+app.use('/auth', authRouter);
 //app.use('/', verUsuarios);
 //app.use('/', AddPassword);
 //app.use('/', VerColumnasUsuario);
