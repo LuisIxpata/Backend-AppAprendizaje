@@ -1,26 +1,34 @@
 // routes/archivos.js
 import { Router } from 'express';
 import db from '../db.js';
-
-
-// --- Opcional: subida de archivos con multer (memoria) ---
 import multer from 'multer';
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB
 });
 
-// --- Opcional: Cloudinary (descomenta si lo usas) ---
-// import { v2 as cloudinary } from 'cloudinary';
-// cloudinary.config({
-//   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-//   api_key:    process.env.CLOUDINARY_API_KEY,
-//   api_secret: process.env.CLOUDINARY_API_SECRET,
-// });
-
 const router = Router();
 
-/* ===================== Helpers ===================== */
+/* ========== Helpers ========== */
+
+// ⚠️ Modo PRUEBAS (sin auth): tomamos el user desde header/query/body.
+function getUserCtx(req) {
+  const idRaw =
+    req.header('x-user-id') ??
+    req.query.user_id ??
+    (req.body && req.body.user_id);
+
+  const rolRaw =
+    req.header('x-user-role') ??
+    req.query.rol ??
+    (req.body && req.body.rol);
+
+  const id = Number(idRaw);
+  const rol = (rolRaw || 'docente').toString().toLowerCase();
+  if (!id || Number.isNaN(id)) return null;
+  return { id, rol };
+}
 
 const guessType = (filename = '', mime = '') => {
   const ext = (filename.split('.').pop() || '').toLowerCase();
@@ -46,12 +54,14 @@ const rowToClient = r => ({
   fecha_subida: r.fecha_subida,
 });
 
-/* ===================== GET /archivos ===================== */
-/* Lista solo los archivos del usuario. Admin puede ver todo con ?scope=all */
+/* ========== GET /archivos ========== */
+/* Lista archivos del usuario. ?scope=all + rol=admin muestra todo */
 router.get('/', async (req, res) => {
   try {
-    const { id: userId, rol } = req.user;
-    const seeAll = req.query.scope === 'all' && rol === 'admin';
+    const ctx = getUserCtx(req);
+    if (!ctx) return res.status(400).json({ error: 'user_id requerido (temporal sin auth)' });
+
+    const seeAll = req.query.scope === 'all' && ctx.rol === 'admin';
 
     const q = seeAll
       ? `SELECT id, titulo, tipo, url, fecha_subida
@@ -62,9 +72,8 @@ router.get('/', async (req, res) => {
           WHERE user_id = $1
           ORDER BY fecha_subida DESC`;
 
-    const params = seeAll ? [] : [userId];
+    const params = seeAll ? [] : [ctx.id];
     const { rows } = await db.query(q, params);
-
     return res.json(rows.map(rowToClient));
   } catch (e) {
     console.error('[GET /archivos]', e);
@@ -72,10 +81,12 @@ router.get('/', async (req, res) => {
   }
 });
 
-/* ===================== GET /archivos/:id ===================== */
-/* (opcional) metadata de un archivo si es del dueño */
+/* ========== GET /archivos/:id ========== */
 router.get('/:id', async (req, res) => {
   try {
+    const ctx = getUserCtx(req);
+    if (!ctx) return res.status(400).json({ error: 'user_id requerido (temporal sin auth)' });
+
     const fileId = Number(req.params.id);
     if (!fileId) return res.status(400).json({ error: 'ID inválido' });
 
@@ -88,7 +99,7 @@ router.get('/:id', async (req, res) => {
     if (!rows.length) return res.status(404).json({ error: 'No existe' });
 
     const r = rows[0];
-    if (r.user_id !== req.user.id && req.user.rol !== 'admin') {
+    if (r.user_id !== ctx.id && ctx.rol !== 'admin') {
       return res.status(403).json({ error: 'Sin permiso' });
     }
     return res.json(rowToClient(r));
@@ -98,10 +109,12 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-/* ===================== GET /archivos/:id/download-url ===================== */
-/* Devuelve una URL de descarga si el archivo es del usuario */
+/* ========== GET /archivos/:id/download-url ========== */
 router.get('/:id/download-url', async (req, res) => {
   try {
+    const ctx = getUserCtx(req);
+    if (!ctx) return res.status(400).json({ error: 'user_id requerido (temporal sin auth)' });
+
     const fileId = Number(req.params.id);
     if (!fileId) return res.status(400).json({ error: 'ID inválido' });
 
@@ -114,12 +127,9 @@ router.get('/:id/download-url', async (req, res) => {
     if (!rows.length) return res.status(404).json({ error: 'No existe' });
 
     const f = rows[0];
-    if (f.user_id !== req.user.id && req.user.rol !== 'admin') {
+    if (f.user_id !== ctx.id && ctx.rol !== 'admin') {
       return res.status(403).json({ error: 'Sin permiso' });
     }
-
-    // Si usas S3 privado, aquí genera un presigned URL y retorna ese.
-    // Para Cloudinary público, la misma URL basta.
     return res.json({ url: f.url });
   } catch (e) {
     console.error('[GET /archivos/:id/download-url]', e);
@@ -127,81 +137,54 @@ router.get('/:id/download-url', async (req, res) => {
   }
 });
 
-/* ===================== POST /archivos ===================== */
-/* A) Modo URL directa (body.url) | B) Modo archivo form-data (archivo) */
-router.post(
-  '/',
-  upload.single('archivo'), // permite recibir archivo; si no viene, no falla
-  async (req, res) => {
-    try {
-      const userId = req.user.id;
+/* ========== POST /archivos ========== */
+/* A) body.url   B) archivo (no implementado storage -> devuelve 400) */
+router.post('/', upload.single('archivo'), async (req, res) => {
+  try {
+    const ctx = getUserCtx(req);
+    if (!ctx) return res.status(400).json({ error: 'user_id requerido (temporal sin auth)' });
 
-      let { titulo, tipo, modulo_id, url } = req.body || {};
-      titulo = (titulo || '').toString().trim();
-      tipo = (tipo || '').toString().trim() || null;
-      modulo_id = modulo_id ? Number(modulo_id) : null;
+    let { titulo, tipo, modulo_id, url } = req.body || {};
+    titulo = (titulo || '').toString().trim();
+    tipo = (tipo || '').toString().trim() || null;
+    modulo_id = modulo_id ? Number(modulo_id) : null;
 
-      // --- Caso B: se subió un archivo ---
-      if (req.file && req.file.buffer) {
-        const original = req.file.originalname || 'archivo';
-        const detectedType = guessType(original, req.file.mimetype);
-        if (!titulo) titulo = original;
-        if (!tipo) tipo = detectedType;
-
-        // ====== Subida a Cloudinary (descomentar si lo usas) ======
-        // const folder = `user_${userId}`;
-        // const uploadRes = await cloudinary.uploader.upload_stream({
-        //   folder,
-        //   resource_type: 'auto',
-        //   public_id: undefined,
-        // }, (err, result) => { ... });
-        //
-        // Para usar upload_stream con buffer en memoria:
-        // const streamUpload = () => new Promise((resolve, reject) => {
-        //   const stream = cloudinary.uploader.upload_stream(
-        //     { folder, resource_type: 'auto' },
-        //     (err, result) => (err ? reject(err) : resolve(result))
-        //   );
-        //   stream.end(req.file.buffer);
-        // });
-        // const result = await streamUpload();
-        // url = result.secure_url;
-
-        // ====== Si no usas storage aún: rechaza o simula una URL ======
-        return res
-          .status(400)
-          .json({ error: 'Subida de archivo activa pero falta integrar storage (Cloudinary/S3). Envíe body.url temporalmente.' });
-      }
-
-      // --- Caso A: URL directa ---
-      if (!url) return res.status(400).json({ error: 'Falta url o archivo' });
-      if (!titulo) titulo = 'archivo';
-      if (!tipo) tipo = guessType(titulo);
-
-      const { rows } = await db.query(
-        `INSERT INTO archivos (user_id, titulo, tipo, url, modulo_id, fecha_subida)
-         VALUES ($1,$2,$3,$4,$5, NOW())
-         RETURNING id, titulo, tipo, url, fecha_subida`,
-        [userId, titulo, tipo, url, modulo_id]
-      );
-
-      return res.status(201).json(rowToClient(rows[0]));
-    } catch (e) {
-      console.error('[POST /archivos]', e);
-      return res.status(500).json({ error: 'No se pudo subir/registrar el archivo' });
+    // Si viene archivo, por ahora rechazamos (no hay Cloud storage integrado)
+    if (req.file && req.file.buffer) {
+      return res.status(400).json({
+        error: 'Subida de archivo no habilitada aún. Envíe body.url temporalmente.',
+      });
     }
-  }
-);
 
-/* ===================== DELETE /archivos/:id ===================== */
-/* Solo dueño (o admin) puede eliminar */
+    if (!url) return res.status(400).json({ error: 'Falta url o archivo' });
+    if (!titulo) titulo = 'archivo';
+    if (!tipo) tipo = guessType(titulo);
+
+    const { rows } = await db.query(
+      `INSERT INTO archivos (user_id, titulo, tipo, url, modulo_id, fecha_subida)
+       VALUES ($1,$2,$3,$4,$5,NOW())
+       RETURNING id, titulo, tipo, url, fecha_subida`,
+      [ctx.id, titulo, tipo, url, modulo_id]
+    );
+
+    return res.status(201).json(rowToClient(rows[0]));
+  } catch (e) {
+    console.error('[POST /archivos]', e);
+    return res.status(500).json({ error: 'No se pudo subir/registrar el archivo' });
+  }
+});
+
+/* ========== DELETE /archivos/:id ========== */
 router.delete('/:id', async (req, res) => {
   try {
+    const ctx = getUserCtx(req);
+    if (!ctx) return res.status(400).json({ error: 'user_id requerido (temporal sin auth)' });
+
     const fileId = Number(req.params.id);
     if (!fileId) return res.status(400).json({ error: 'ID inválido' });
 
-    const isAdmin = req.user.rol === 'admin';
-    const params = isAdmin ? [fileId] : [fileId, req.user.id];
+    const isAdmin = ctx.rol === 'admin';
+    const params = isAdmin ? [fileId] : [fileId, ctx.id];
 
     const { rowCount } = await db.query(
       isAdmin
